@@ -34,34 +34,15 @@ module ImmutableAttributes
 
     @immutables = attr_names
 
-    attr_names.each do |attr|
-      class_eval do
-        define_method("original_#{attr}") do
-          instance_variable_get("@original_#{attr}")
-        end
-      end
-    end
-
     class_eval do
       def self.immutables
         @immutables
       end
-
-      def after_initialize; end;
-
-      def setup_originals
-        self.class.immutables.each do |attr_name|
-          next unless attribute_names.include? attr_name
-          instance_variable_set("@original_#{attr_name}", send(attr_name.to_s))
-        end
-      end
-      
-      after_initialize :setup_originals
     end
 
     validates_each(attr_names, config) do |record, attr_name, value|
-      next if record.send("original_#{attr_name.to_s}").nil?
-      record.errors.add(attr_name, config[:message]) if record.send("original_#{attr_name.to_s}") != record.send(attr_name.to_s)
+      old_val, new_val = record.changes[attr_name.to_s]
+      record.errors.add(attr_name, config[:message]) unless old_val.nil?
     end
   end
 end
